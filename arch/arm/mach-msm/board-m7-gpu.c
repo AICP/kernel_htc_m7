@@ -181,18 +181,25 @@ static struct msm_bus_scale_pdata grp3d_bus_scale_pdata = {
 #endif
 
 static struct resource kgsl_3d0_resources[] = {
-        {
-                .name = KGSL_3D0_REG_MEMORY,
-                .start = 0x04300000,
-                .end = 0x0431ffff,
-                .flags = IORESOURCE_MEM,
-        },
-        {
-                .name = KGSL_3D0_IRQ,
-                .start = GFX3D_IRQ,
-                .end = GFX3D_IRQ,
-                .flags = IORESOURCE_IRQ,
-        },
+
+	{
+		.name = KGSL_3D0_REG_MEMORY,
+		.start = 0x04300000, /* GFX3D address */
+		.end = 0x0430ffff,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.name = KGSL_3D0_SHADER_MEMORY,
+		.start = 0x04310000, /* Shader Mem address */
+		.end = 0x0431ffff,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.name = KGSL_3D0_IRQ,
+		.start = GFX3D_IRQ,
+		.end = GFX3D_IRQ,
+		.flags = IORESOURCE_IRQ,
+	},
 };
 
 static const struct kgsl_iommu_ctx kgsl_3d0_iommu0_ctxs[] = {
@@ -221,6 +228,7 @@ static struct kgsl_device_iommu_data kgsl_3d0_iommu_data[] = {
 };
 
 static struct kgsl_device_platform_data kgsl_3d0_pdata = {
+
         .pwrlevel = {
                 {
                         .gpu_freq = 450000000,
@@ -246,9 +254,9 @@ static struct kgsl_device_platform_data kgsl_3d0_pdata = {
         .num_levels = 4,
         .set_grp_async = NULL,
         .idle_timeout = HZ/10,
-        .nap_allowed = true,
         .strtstp_sleepwake = false,
         .clk_map = KGSL_CLK_CORE | KGSL_CLK_IFACE | KGSL_CLK_MEM_IFACE,
+
 #ifdef CONFIG_MSM_BUS_SCALING
         .bus_scale_table = &grp3d_bus_scale_pdata,
 #endif
