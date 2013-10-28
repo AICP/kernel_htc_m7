@@ -22,6 +22,8 @@
 #include "devices.h"
 #include "board-m7.h"
 
++uint32_t max_gpu = 1;
+
 #ifdef CONFIG_MSM_DCVS
 static struct msm_dcvs_freq_entry grp3d_freq[] = {
 	{0, 900, 0, 0, 0},
@@ -89,63 +91,63 @@ static struct msm_bus_vectors grp3d_init_vectors[] = {
 };
 
 static struct msm_bus_vectors grp3d_low_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(1000),
-	},
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(1000),
-	},
+        {
+                .src = MSM_BUS_MASTER_GRAPHICS_3D,
+                .dst = MSM_BUS_SLAVE_EBI_CH0,
+                .ab = 0,
+                .ib = KGSL_CONVERT_TO_MBPS(1000),
+        },
+        {
+                .src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
+                .dst = MSM_BUS_SLAVE_EBI_CH0,
+                .ab = 0,
+                .ib = KGSL_CONVERT_TO_MBPS(1000),
+        },
 };
 
 static struct msm_bus_vectors grp3d_nominal_low_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(2000),
-	},
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(2000),
-	},
+        {
+                .src = MSM_BUS_MASTER_GRAPHICS_3D,
+                .dst = MSM_BUS_SLAVE_EBI_CH0,
+                .ab = 0,
+                .ib = KGSL_CONVERT_TO_MBPS(2000),
+        },
+        {
+                .src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
+                .dst = MSM_BUS_SLAVE_EBI_CH0,
+                .ab = 0,
+                .ib = KGSL_CONVERT_TO_MBPS(2000),
+        },
 };
 
 static struct msm_bus_vectors grp3d_nominal_high_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(2656),
-	},
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(2656),
-	},
+        {
+                .src = MSM_BUS_MASTER_GRAPHICS_3D,
+                .dst = MSM_BUS_SLAVE_EBI_CH0,
+                .ab = 0,
+                .ib = KGSL_CONVERT_TO_MBPS(4264),
+        },
+        {
+                .src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
+                .dst = MSM_BUS_SLAVE_EBI_CH0,
+                .ab = 0,
+                .ib = KGSL_CONVERT_TO_MBPS(4264),
+        },
 };
 
 static struct msm_bus_vectors grp3d_max_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(4264),
-	},
-	{
-		.src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = KGSL_CONVERT_TO_MBPS(4264),
-	},
+        {
+                .src = MSM_BUS_MASTER_GRAPHICS_3D,
+                .dst = MSM_BUS_SLAVE_EBI_CH0,
+                .ab = 0,
+                .ib = KGSL_CONVERT_TO_MBPS(5290),
+        },
+        {
+                .src = MSM_BUS_MASTER_GRAPHICS_3D_PORT1,
+                .dst = MSM_BUS_SLAVE_EBI_CH0,
+                .ab = 0,
+                .ib = KGSL_CONVERT_TO_MBPS(5290),
+        },
 };
 
 static struct msm_bus_paths grp3d_bus_scale_usecases[] = {
@@ -273,21 +275,36 @@ struct platform_device device_kgsl_3d0 = {
 	},
 };
 
-void __init m7_init_gpu(void)
+/*gpuoc*/
+
+static int __init read_max_gpu(char *gpu_oc)
 {
-	unsigned int version = socinfo_get_version();
-
-	if (cpu_is_apq8064ab())
-		kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 450000000;
-	if (SOCINFO_VERSION_MAJOR(version) == 2) {
-		kgsl_3d0_pdata.chipid = ADRENO_CHIPID(3, 2, 0, 2);
-	} else {
-		if ((SOCINFO_VERSION_MAJOR(version) == 1) &&
-				(SOCINFO_VERSION_MINOR(version) == 1))
-			kgsl_3d0_pdata.chipid = ADRENO_CHIPID(3, 2, 0, 1);
-		else
-			kgsl_3d0_pdata.chipid = ADRENO_CHIPID(3, 2, 0, 0);
-	}
-
-	platform_device_register(&device_kgsl_3d0);
+        if (strcmp(gpu_oc, "1") == 0) {
+                max_gpu = 1;
+        } else if (strcmp(gpu_oc, "2") == 0) {
+                max_gpu = 2;
+        } else if (strcmp(gpu_oc, "3") == 0) {
+                max_gpu = 3;
+        } else {
+                max_gpu = 0;
+        }        
+        return 0;
 }
+
+oid __init m7_init_gpu(void)
+{
+        if (max_gpu == 1)
+                kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 450000000;
+
+        if (max_gpu == 2)
+                kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 480000000;
+
+        if (max_gpu == 3)
+                kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 533000000;
+
+        if (cpu_is_apq8064ab())
+                kgsl_3d0_pdata.pwrlevel[0].gpu_freq = 450000000;
+
+        platform_device_register(&device_kgsl_3d0);
+}
+
