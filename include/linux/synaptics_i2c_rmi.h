@@ -55,6 +55,8 @@
 #define CUS_LIFT_CTRL		3
 
 #define SENSOR_ID_CHECKING_EN	1 << 16
+#define PSENSOR_STATUS		0x03
+#define PHONE_STATUS		0x04
 
 enum {
 	SYNAPTICS_FLIP_X = 1UL << 0,
@@ -143,6 +145,8 @@ struct synaptics_i2c_rmi_platform_data {
 	uint8_t multitouch_calibration;
 	uint8_t psensor_detection;
 	uint8_t PixelTouchThreshold_bef_unlock;
+	uint8_t block_touch_time_near;
+	uint8_t block_touch_time_far;
 };
 
 struct page_description {
