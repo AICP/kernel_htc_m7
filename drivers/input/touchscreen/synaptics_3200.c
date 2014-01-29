@@ -172,7 +172,6 @@ int s2w_switch = 1;
 int l2m_switch = 1;
 int l2w_switch = 0;
 int dt2w_switch = 1;
-int pocket_detect = 1;
 int s2w_wakestat = 0;
 int s2w_hist[2] = {0, 0};
 cputime64_t s2w_time[2] = {0, 0};
@@ -202,7 +201,6 @@ extern void sweep2wake_setdev(struct input_dev * input_device) {
 EXPORT_SYMBOL(sweep2wake_setdev);
 
 static void sweep2wake_presspwr(struct work_struct * sweep2wake_presspwr_work) {
-	int pocket_mode = 0;
 
 	dt2w_time[0] = 0;
 	dt2w_time[1] = 0;
@@ -215,17 +213,15 @@ static void sweep2wake_presspwr(struct work_struct * sweep2wake_presspwr_work) {
 	dt2w_y[0] = 0;
 	dt2w_y[1] = 0;
 
-	if (scr_suspended == true && pocket_detect == 1)
-		pocket_mode = power_key_check_in_pocket(1);
 
 	if (l2w_switch == 1)
 		break_longtap_count = 1;
 
-	if (!pocket_mode || pocket_detect == 0) {
+	
 		if (wakesleep_vib) {
 		        vibrate(vib_strength);
 			wakesleep_vib = 0;
-		}
+		
 
 		if (!mutex_trylock(&pwrkeyworklock))
         	        return;
@@ -296,16 +292,11 @@ static void logo2wake_longtap_count(struct work_struct * logo2wake_longtap_count
 		msleep(3);
 	}
 	if (!break_longtap_count) {
-		int pocket_mode = 0;
 		
 		time_count = 0;
 
 		// printk(KERN_INFO "[L2W] sending event KEY_POWER 1\n");
-
-		if (pocket_detect == 1)
-			pocket_mode = power_key_check_in_pocket(1);
-
-		if (!pocket_mode || pocket_detect == 0) {
+		
 			vibrate(vib_strength);
 			input_event(sweep2wake_pwrdev, EV_KEY, KEY_POWER, 1);
 			input_sync(sweep2wake_pwrdev);
@@ -314,7 +305,6 @@ static void logo2wake_longtap_count(struct work_struct * logo2wake_longtap_count
 			input_sync(sweep2wake_pwrdev);
 			msleep(100);
 		}
-	}
 	
 	mutex_unlock(&longtap_count_lock);
 	return;
@@ -379,20 +369,6 @@ static int __init get_l2w_opt(char *l2w)
 }
 
 __setup("l2w=", get_l2w_opt); 
-
-static int __init get_pocket_detect_opt(char *pd)
-{
-	if (strcmp(pd, "0") == 0) {
-		pocket_detect = 0;
-	} else if (strcmp(pd, "1") == 0) {
-		pocket_detect = 1;
-	} else {
-		pocket_detect = 0;
-	}
-	return 1;
-}
-
-__setup("pd=", get_pocket_detect_opt); 
 
 static int __init get_dt2w_opt(char *dt2w)
 {
@@ -2016,29 +1992,6 @@ static ssize_t synaptics_logo2wake_dump(struct device *dev, struct device_attrib
 static DEVICE_ATTR(logo2wake, (S_IWUSR|S_IRUGO),
 	synaptics_logo2wake_show, synaptics_logo2wake_dump); 
 
-static ssize_t synaptics_pocket_detect_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-	size_t count = 0;
-	count += sprintf(buf, "%d\n", pocket_detect);
-	return count;
-}
-
-static ssize_t synaptics_pocket_detect_dump(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
-{
-	if (buf[0] >= '0' && buf[0] <= '1' && buf[1] == '\n')
-                if (pocket_detect != buf[0] - '0')
-		        pocket_detect = buf[0] - '0';
-
-	return count;
-}
-
-static DEVICE_ATTR(pocket_detect, 0666,
-	synaptics_pocket_detect_show, synaptics_pocket_detect_dump);
-
-
-
-
-
 static ssize_t synaptics_vib_strength_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	size_t count = 0;
@@ -2201,12 +2154,6 @@ static int synaptics_touch_sysfs_init(void)
 	return ret;
 	} 
 
-	ret = sysfs_create_file(android_touch_kobj, &dev_attr_pocket_detect.attr);
-	if (ret) {
-		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
-	return ret;
-	} 
-
 	ret = sysfs_create_file(android_touch_kobj, &dev_attr_vib_strength.attr);
 	if (ret) {
 		printk(KERN_ERR "%s: sysfs_create_file failed\n", __func__);
@@ -2266,7 +2213,6 @@ static void synaptics_touch_sysfs_remove(void)
 	sysfs_remove_file(android_touch_kobj, &dev_attr_doubletap2wake.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_logo2menu.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_logo2wake.attr);
-	sysfs_remove_file(android_touch_kobj, &dev_attr_pocket_detect.attr);
 	sysfs_remove_file(android_touch_kobj, &dev_attr_vib_strength.attr);
 #endif
 #ifdef SYN_WIRELESS_DEBUG

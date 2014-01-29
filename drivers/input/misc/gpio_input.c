@@ -277,10 +277,7 @@ static int is_rrm1_mode(void);
 
 static void power_key_restart_work_func(struct work_struct *dummy)
 {
-	int pocket_mode = power_key_check_in_pocket(1);
-
-	printk(KERN_INFO "%s: power_key_check_in_pocket = %d\n", __func__, pocket_mode);
-	if (!pocket_mode && pre_power_key_led_status == 1 && !is_rrm1_mode()) {
+	if (pre_power_key_led_status == 1 && !is_rrm1_mode()) {
 		
 		set_hw_reason(0);
 #if defined(CONFIG_PM8921_BMS) && (CONFIG_HTC_BATT_8960)
@@ -364,21 +361,12 @@ static void handle_power_key_reset(unsigned int code, int value);
 static void power_key_check_reset_work_func(struct work_struct *dummy)
 {
 	struct gpio_event_input_info *aa = gis;
-	int pocket_mode = 0;
 	KEY_LOGI("[PWR] %s\n", __func__);
 	if ((aa->clear_hw_reset)) {
 		if (aa->info.rrm1_mode) {
 			printk(KERN_INFO "[KEY] Power key check in Lab Test RRM1 mode.\n");
 			aa->clear_hw_reset();
-		}
-		else {
-			
-			pocket_mode = power_key_check_in_pocket(1);
-			if (pocket_mode) {
-				printk(KERN_INFO "[KEY] power_key_check_in_pocket = %d\n", pocket_mode);
-				aa->clear_hw_reset();
 			}
-		}
 	}
 	else {
 		KEY_LOGI("[PWR] No reset  clear function\n");

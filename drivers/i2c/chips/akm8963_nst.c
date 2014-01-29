@@ -25,16 +25,16 @@
 #include <linux/input.h>
 #include <linux/workqueue.h>
 #include <linux/freezer.h>
-#include <linux/akm8963.h>
+#include <linux/akm8963_nst.h>
 #include <linux/export.h>
 #include <linux/module.h>
 
 #define AKM8963_DEBUG_IF	0
 #define AKM8963_DEBUG_DATA	0
 
-#define D(x...) printk(KERN_DEBUG "[COMP][AKM8963] " x)
-#define I(x...) printk(KERN_INFO "[COMP][AKM8963] " x)
-#define E(x...) printk(KERN_ERR "[COMP][AKM8963] " x)
+#define D(x...) printk(KERN_DEBUG "[COMP][AKM8963_NST] " x)
+#define I(x...) printk(KERN_INFO "[COMP][AKM8963_NST] " x)
+#define E(x...) printk(KERN_ERR "[COMP][AKM8963_NST] " x)
 
 #if AKM8963_DEBUG_DATA
 #define AKM_DATA(dev, ...) \
@@ -1278,7 +1278,7 @@ int akm8963_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	int i;
 
 	dev_dbg(&client->dev, "start probing.");
-	I("AKM8963 compass driver: probe.");
+	I("AKM8963 compass driver: probe with Magnetic Field Uncalibrated support!\n");
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		dev_err(&client->dev, "%s: check_functionality failed.",
@@ -1461,4 +1461,5 @@ module_exit(akm8963_exit);
 
 MODULE_DESCRIPTION("AKM8963 compass driver");
 MODULE_LICENSE("GPL");
+
 
