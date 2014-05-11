@@ -4002,7 +4002,7 @@ static void rq_offline_fair(struct rq *rq)
 {
 	update_sysctl();
 
-	
+	/* Ensure any throttled groups are reachable by pick_next_task */
 	unthrottle_offline_cfs_rqs(rq);
 }
 
