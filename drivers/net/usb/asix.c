@@ -304,6 +304,7 @@ asix_write_cmd_async(struct usbnet *dev, u8 cmd, u16 value, u16 index,
 }
 
 static int asix_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
+
 {
 	int offset = 0;
 
@@ -319,6 +320,7 @@ static int asix_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
 		if (size != ((~header >> 16) & 0x07ff)) {
 			netdev_err(dev->net, "asix_rx_fixup() Bad Header Length\n");
 			return 0;
+
 		}
 
 		if ((size > dev->net->mtu + ETH_HLEN) ||
@@ -327,6 +329,7 @@ static int asix_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
 				   size);
 			return 0;
 		}
+
 		ax_skb = netdev_alloc_skb_ip_align(dev->net, size);
 		if (!ax_skb)
 			return 0;
@@ -343,6 +346,7 @@ static int asix_rx_fixup(struct usbnet *dev, struct sk_buff *skb)
 			   skb->len);
 		return 0;
 	}
+
 	return 1;
 }
 
