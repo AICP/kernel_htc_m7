@@ -212,10 +212,10 @@ u64 get_cpu_iowait_time_us(int cpu, u64 *last_update_time)
 }
 EXPORT_SYMBOL_GPL(get_cpu_iowait_time_us);
 
-static void tick_nohz_stop_sched_tick(struct tick_sched *ts)
+static void tick_nohz_stop_sched_tick(struct tick_sched *ts, ktime_t now)
 {
 	unsigned long seq, last_jiffies, next_jiffies, delta_jiffies;
-	ktime_t last_update, expires, now;
+	ktime_t last_update, expires;
 	struct clock_event_device *dev = __get_cpu_var(tick_cpu_device).evtdev;
 	u64 time_delta;
 	int cpu;
@@ -223,8 +223,13 @@ static void tick_nohz_stop_sched_tick(struct tick_sched *ts)
 	cpu = smp_processor_id();
 	ts = &per_cpu(tick_cpu_sched, cpu);
 
-	now = tick_nohz_start_idle(cpu, ts);
-
+	/*
+	 * If this cpu is offline and it is the one which updates
+	 * jiffies, then give up the assignment and let it be taken by
+	 * the cpu which runs the tick timer next. If we don't drop
+	 * this here the jiffies might be stale and do_timer() never
+	 * invoked.
+	 */
 	if (unlikely(!cpu_online(cpu))) {
 		if (cpu == tick_do_timer_cpu)
 			tick_do_timer_cpu = TICK_DO_TIMER_NONE;
@@ -332,6 +337,26 @@ out:
 	ts->sleep_length = ktime_sub(dev->next_event, now);
 }
 
+static void __tick_nohz_idle_enter(struct tick_sched *ts)
+{
+	ktime_t now;
+
+	now = tick_nohz_start_idle(smp_processor_id(), ts);
+	tick_nohz_stop_sched_tick(ts, now);
+}
+
+/**
+ * tick_nohz_idle_enter - stop the idle tick from the idle task
+ *
+ * When the next event is more than a tick into the future, stop the idle tick
+ * Called when we start the idle loop.
+ *
+ * The arch is responsible of calling:
+ *
+ * - rcu_idle_enter() after its last use of RCU before the CPU is put
+ *  to sleep.
+ * - rcu_idle_exit() before the first use of RCU after the CPU is woken up.
+ */
 void tick_nohz_idle_enter(void)
 {
 	struct tick_sched *ts;
@@ -344,7 +369,7 @@ void tick_nohz_idle_enter(void)
 
 	ts = &__get_cpu_var(tick_cpu_sched);
 	ts->inidle = 1;
-	tick_nohz_stop_sched_tick(ts);
+	__tick_nohz_idle_enter(ts);
 
 	local_irq_enable();
 }
@@ -359,7 +384,7 @@ void tick_nohz_irq_exit(void)
 
 	local_irq_save(flags);
 
-	tick_nohz_stop_sched_tick(ts);
+	__tick_nohz_idle_enter(ts);
 
 	local_irq_restore(flags);
 }
@@ -397,32 +422,11 @@ static void tick_nohz_restart(struct tick_sched *ts, ktime_t now)
 	}
 }
 
-void tick_nohz_idle_exit(void)
+static void tick_nohz_restart_sched_tick(struct tick_sched *ts, ktime_t now)
 {
-	int cpu = smp_processor_id();
-	struct tick_sched *ts = &per_cpu(tick_cpu_sched, cpu);
 #ifndef CONFIG_VIRT_CPU_ACCOUNTING
 	unsigned long ticks;
 #endif
-	ktime_t now;
-
-	local_irq_disable();
-
-	WARN_ON_ONCE(!ts->inidle);
-
-	ts->inidle = 0;
-
-	if (ts->idle_active || ts->tick_stopped)
-		now = ktime_get();
-
-	if (ts->idle_active)
-		tick_nohz_stop_idle(cpu, now);
-
-	if (!ts->tick_stopped) {
-		local_irq_enable();
-		return;
-	}
-
 	/* Update jiffies first */
 	tick_do_update_jiffies64(now);
 
@@ -438,6 +442,35 @@ void tick_nohz_idle_exit(void)
 	ts->idle_exittime = now;
 
 	tick_nohz_restart(ts, now);
+}
+
+/**
+ * tick_nohz_idle_exit - restart the idle tick from the idle task
+ *
+ * Restart the idle tick when the CPU is woken up from idle
+ * This also exit the RCU extended quiescent state. The CPU
+ * can use RCU again after this function is called.
+ */
+void tick_nohz_idle_exit(void)
+{
+	int cpu = smp_processor_id();
+	struct tick_sched *ts = &per_cpu(tick_cpu_sched, cpu);
+	ktime_t now;
+
+	local_irq_disable();
+
+	WARN_ON_ONCE(!ts->inidle);
+
+	ts->inidle = 0;
+
+	if (ts->idle_active || ts->tick_stopped)
+		now = ktime_get();
+
+	if (ts->idle_active)
+		tick_nohz_stop_idle(cpu, now);
+
+	if (ts->tick_stopped)
+		tick_nohz_restart_sched_tick(ts, now);
 
 	local_irq_enable();
 }
