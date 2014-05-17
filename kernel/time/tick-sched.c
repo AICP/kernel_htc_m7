@@ -296,7 +296,7 @@ static void tick_nohz_stop_sched_tick(struct tick_sched *ts)
 			goto out;
 
 		if (!ts->tick_stopped) {
-			select_nohz_load_balancer(1);
+			nohz_balance_enter_idle(cpu);
 			calc_load_enter_idle();
 
 			ts->idle_tick = hrtimer_get_expires(&ts->sched_timer);
@@ -351,12 +351,17 @@ void tick_nohz_idle_enter(void)
 
 void tick_nohz_irq_exit(void)
 {
+	unsigned long flags;
 	struct tick_sched *ts = &__get_cpu_var(tick_cpu_sched);
 
 	if (!ts->inidle)
 		return;
 
+	local_irq_save(flags);
+
 	tick_nohz_stop_sched_tick(ts);
+
+	local_irq_restore(flags);
 }
 
 ktime_t tick_nohz_get_sleep_length(void)
@@ -418,8 +423,7 @@ void tick_nohz_idle_exit(void)
 		return;
 	}
 
-	
-	select_nohz_load_balancer(0);
+	/* Update jiffies first */
 	tick_do_update_jiffies64(now);
 
 #ifndef CONFIG_VIRT_CPU_ACCOUNTING
