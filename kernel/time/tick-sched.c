@@ -31,7 +31,10 @@ struct rq_data rq_info;
 struct workqueue_struct *rq_wq;
 spinlock_t rq_lock;
 
-static DEFINE_PER_CPU(struct tick_sched, tick_cpu_sched);
+/*
+ * Per cpu nohz control structure
+ */
+DEFINE_PER_CPU(struct tick_sched, tick_cpu_sched);
 
 static ktime_t last_jiffies_update;
 
