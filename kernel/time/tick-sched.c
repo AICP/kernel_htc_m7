@@ -212,11 +212,11 @@ u64 get_cpu_iowait_time_us(int cpu, u64 *last_update_time)
 }
 EXPORT_SYMBOL_GPL(get_cpu_iowait_time_us);
 
-static void tick_nohz_stop_sched_tick(struct tick_sched *ts,
-				      ktime_t now, int cpu)
+static ktime_t tick_nohz_stop_sched_tick(struct tick_sched *ts,
+					 ktime_t now, int cpu)
 {
 	unsigned long seq, last_jiffies, next_jiffies, delta_jiffies;
-	ktime_t last_update, expires;
+	ktime_t last_update, expires, ret = { .tv64 = 0 };
 	struct clock_event_device *dev = __get_cpu_var(tick_cpu_device).evtdev;
 	u64 time_delta;
 
@@ -268,6 +268,15 @@ static void tick_nohz_stop_sched_tick(struct tick_sched *ts,
 		if (ts->tick_stopped && ktime_equal(expires, dev->next_event))
 			goto out;
 
+		ret = expires;
+
+		/*
+		 * nohz_stop_sched_tick can be called several times before
+		 * the nohz_restart_sched_tick is called. This happens when
+		 * interrupts arrive which do not cause a reschedule. In the
+		 * first call we save the current tick time, so we can restart
+		 * the scheduler tick in nohz_restart_sched_tick.
+		 */
 		if (!ts->tick_stopped) {
 			nohz_balance_enter_idle(cpu);
 			calc_load_enter_idle();
@@ -276,11 +285,10 @@ static void tick_nohz_stop_sched_tick(struct tick_sched *ts,
 			ts->tick_stopped = 1;
 		}
 
-		ts->idle_sleeps++;
-
-		
-		ts->idle_expires = expires;
-
+		/*
+		 * If the expiration time == KTIME_MAX, then
+		 * in this case we simply stop the tick timer.
+		 */
 		 if (unlikely(expires.tv64 == KTIME_MAX)) {
 			if (ts->nohz_mode == NOHZ_MODE_HIGHRES)
 				hrtimer_cancel(&ts->sched_timer);
@@ -301,7 +309,8 @@ static void tick_nohz_stop_sched_tick(struct tick_sched *ts,
 out:
 	ts->next_jiffies = next_jiffies;
 	ts->last_jiffies = last_jiffies;
-	ts->sleep_length = ktime_sub(dev->next_event, now);
+
+	return ret;
 }
 
 static bool can_stop_idle_tick(int cpu, struct tick_sched *ts)
@@ -340,7 +349,7 @@ static bool can_stop_idle_tick(int cpu, struct tick_sched *ts)
 
 static void __tick_nohz_idle_enter(struct tick_sched *ts)
 {
-	ktime_t now;
+	ktime_t now, expires;
 	int cpu = smp_processor_id();
 
 	now = tick_nohz_start_idle(cpu, ts);
@@ -349,7 +358,12 @@ static void __tick_nohz_idle_enter(struct tick_sched *ts)
 		int was_stopped = ts->tick_stopped;
 
 		ts->idle_calls++;
-		tick_nohz_stop_sched_tick(ts, now, cpu);
+
+		expires = tick_nohz_stop_sched_tick(ts, now, cpu);
+		if (expires.tv64 > 0LL) {
+			ts->idle_sleeps++;
+			ts->idle_expires = expires;
+		}
 
 		if (!was_stopped && ts->tick_stopped)
 			ts->idle_jiffies = ts->last_jiffies;
