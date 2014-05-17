@@ -686,7 +686,7 @@ static enum hrtimer_restart tick_sched_timer(struct hrtimer *timer)
 	if (regs) {
 		if (ts->tick_stopped) {
 			touch_softlockup_watchdog();
-			if (idle_cpu(cpu))
+			if (is_idle_task(current))
 				ts->idle_jiffies++;
 		}
 		update_process_times(user_mode(regs));
