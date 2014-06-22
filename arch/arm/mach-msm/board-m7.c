@@ -3969,32 +3969,58 @@ static struct msm_cpuidle_state msm_cstates[] __initdata = {
 	{0, 3, "C3", "POWER_COLLAPSE",
 		MSM_PM_SLEEP_MODE_POWER_COLLAPSE},
 
-	{1, 0, "C0", "WFI",
-		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
+static struct htc_battery_platform_data htc_battery_pdev_data = {
+	.guage_driver = 0,
+	.chg_limit_active_mask = HTC_BATT_CHG_LIMIT_BIT_TALK |
+								HTC_BATT_CHG_LIMIT_BIT_NAVI |
+								HTC_BATT_CHG_LIMIT_BIT_THRML,
+#ifdef CONFIG_DUTY_CYCLE_LIMIT
+	.chg_limit_timer_sub_mask = HTC_BATT_CHG_LIMIT_BIT_THRML,
+#endif
+	.critical_low_voltage_mv = 3200,
+	.critical_alarm_vol_ptr = critical_alarm_voltage_mv,
+	.critical_alarm_vol_cols = sizeof(critical_alarm_voltage_mv) / sizeof(int),
+	.overload_vol_thr_mv = 4000,
+	.overload_curr_thr_ma = 0,
+	.smooth_chg_full_delay_min = 1,
+	.icharger.name = "pm8921",
+	.icharger.set_limit_charge_enable = pm8921_limit_charge_enable,
+	.icharger.get_attr_text = pm8921_charger_get_attr_text,
+	.icharger.max_input_current = pm8921_set_hsml_target_ma,
+	.icharger.enable_5v_output = NULL,
+	.icharger.get_charging_source = pm8921_get_charging_source,
+	.icharger.get_charging_enabled = pm8921_get_charging_enabled,
+	.icharger.set_charger_enable = pm8921_charger_enable,
+	.icharger.set_pwrsrc_enable = pm8921_pwrsrc_enable,
+	.icharger.set_pwrsrc_and_charger_enable =
+						pm8921_set_pwrsrc_and_charger_enable,
+	.icharger.is_ovp = pm8921_is_charger_ovp,
+	.icharger.is_batt_temp_fault_disable_chg =
+						pm8921_is_batt_temp_fault_disable_chg,
+	.icharger.charger_change_notifier_register =
+						cable_detect_register_notifier,
+	.icharger.dump_all = pm8921_dump_all,
+	.icharger.is_safty_timer_timeout = pm8921_is_chg_safety_timer_timeout,
+	.icharger.is_battery_full_eoc_stop = pm8921_is_batt_full_eoc_stop,
 
-	{1, 1, "C1", "RETENTION",
-		MSM_PM_SLEEP_MODE_RETENTION},
-
-	{1, 2, "C2", "STANDALONE_POWER_COLLAPSE",
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
-
-	{2, 0, "C0", "WFI",
-		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
-
-	{2, 1, "C1", "RETENTION",
-		MSM_PM_SLEEP_MODE_RETENTION},
-
-	{2, 2, "C2", "STANDALONE_POWER_COLLAPSE",
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
-
-	{3, 0, "C0", "WFI",
-		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
-
-	{3, 1, "C1", "RETENTION",
-		MSM_PM_SLEEP_MODE_RETENTION},
-
-	{3, 2, "C2", "STANDALONE_POWER_COLLAPSE",
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
+	.igauge.name = "pm8921",
+	.igauge.get_battery_voltage = pm8921_get_batt_voltage,
+	.igauge.get_battery_current = pm8921_bms_get_batt_current,
+	.igauge.get_battery_temperature = pm8921_get_batt_temperature,
+	.igauge.get_battery_id = pm8921_get_batt_id,
+	.igauge.get_battery_soc = pm8921_bms_get_batt_soc,
+	.igauge.get_battery_cc = pm8921_bms_get_batt_cc,
+	.igauge.store_battery_data = pm8921_bms_store_battery_data_emmc,
+	.igauge.store_battery_ui_soc = pm8921_bms_store_battery_ui_soc,
+	.igauge.get_battery_ui_soc = pm8921_bms_get_battery_ui_soc,
+	.igauge.is_battery_temp_fault = pm8921_is_batt_temperature_fault,
+	.igauge.is_battery_full = pm8921_is_batt_full,
+	.igauge.get_attr_text = pm8921_gauge_get_attr_text,
+	.igauge.register_lower_voltage_alarm_notifier =
+						pm8xxx_batt_lower_alarm_register_notifier,
+	.igauge.enable_lower_voltage_alarm = pm8xxx_batt_lower_alarm_enable,
+	.igauge.set_lower_voltage_alarm_threshold =
+						pm8xxx_batt_lower_alarm_threshold_set,
 };
 
 static struct msm_pm_platform_data msm_pm_data[] = {
