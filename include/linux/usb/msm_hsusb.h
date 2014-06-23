@@ -219,9 +219,7 @@ struct msm_otg_platform_data {
 	unsigned int mpm_otgsessvld_int;
 	bool mhl_enable;
 	bool disable_reset_on_disconnect;
-#ifdef CONFIG_MACH_HTC
 	bool enable_dcd;
-#endif
 	bool enable_lpm_on_dev_suspend;
 	bool core_clk_always_on_workaround;
 	struct msm_bus_scale_pdata *bus_scale_table;

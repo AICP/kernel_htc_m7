@@ -7,16 +7,16 @@
 enum usb_otg_state {
 	OTG_STATE_UNDEFINED = 0,
 
-	
+
 	OTG_STATE_B_IDLE,
 	OTG_STATE_B_SRP_INIT,
 	OTG_STATE_B_PERIPHERAL,
 
-	
+
 	OTG_STATE_B_WAIT_ACON,
 	OTG_STATE_B_HOST,
 
-	
+
 	OTG_STATE_A_IDLE,
 	OTG_STATE_A_WAIT_VRISE,
 	OTG_STATE_A_WAIT_BCON,
@@ -38,11 +38,11 @@ enum usb_otg_event {
 };
 
 enum usb_phy_events {
-	USB_EVENT_NONE,         
-	USB_EVENT_VBUS,         
-	USB_EVENT_ID,           
-	USB_EVENT_CHARGER,      
-	USB_EVENT_ENUMERATED,   
+	USB_EVENT_NONE,
+	USB_EVENT_VBUS,
+	USB_EVENT_ID,
+	USB_EVENT_CHARGER,
+	USB_EVENT_ENUMERATED,
 };
 
 struct usb_phy;
@@ -59,23 +59,23 @@ struct usb_otg {
 	struct usb_bus		*host;
 	struct usb_gadget	*gadget;
 
-	
+
 	int	(*set_host)(struct usb_otg *otg, struct usb_bus *host);
 
-	
+
 	int	(*set_peripheral)(struct usb_otg *otg,
 					struct usb_gadget *gadget);
 
-	
+
 	int	(*set_vbus)(struct usb_otg *otg, bool enabled);
 
-	
+
 	int	(*start_srp)(struct usb_otg *otg);
 
-	
+
 	int	(*start_hnp)(struct usb_otg *otg);
 
-	
+
 	int	(*send_event)(struct usb_otg *otg,
 			enum usb_otg_event event);
 
@@ -95,32 +95,32 @@ struct usb_phy {
 	struct usb_phy_io_ops	*io_ops;
 	void __iomem		*io_priv;
 
-	
+
 	struct atomic_notifier_head	notifier;
 
-	
+
 	u16			port_status;
 	u16			port_change;
 
-	
+
 	int	(*init)(struct usb_phy *x);
 	void	(*shutdown)(struct usb_phy *x);
 
-	
+
 	int	(*set_power)(struct usb_phy *x,
 				unsigned mA);
 
-	
+
 	int	(*set_suspend)(struct usb_phy *x,
 				int suspend);
 
-	
+
 	int	(*send_event)(struct usb_phy *phy,
 			enum usb_otg_event event);
 
 	void	(*notify_usb_attached)(void);
 	void	(*notify_usb_disabled)(void);
-#endif
+
 };
 
 
@@ -270,4 +270,4 @@ usb_unregister_notifier(struct usb_phy *x, struct notifier_block *nb)
 
 extern int usb_bus_start_enum(struct usb_bus *bus, unsigned port_num);
 
-#endif 
+#endif
