@@ -44,6 +44,8 @@
 #include <linux/fastchg.h>
 #endif
 
+#define MSPERIOD(end, start)	ktime_to_ms(ktime_sub(end, start))
+
 #define HTC_BATT_CHG_DIS_BIT_EOC	(1)
 #define HTC_BATT_CHG_DIS_BIT_ID		(1<<1)
 #define HTC_BATT_CHG_DIS_BIT_TMP	(1<<2)
@@ -60,6 +62,10 @@ static int chg_dis_active_mask = HTC_BATT_CHG_DIS_BIT_ID
 static int chg_dis_control_mask = HTC_BATT_CHG_DIS_BIT_ID
 								| HTC_BATT_CHG_DIS_BIT_MFG
 								| HTC_BATT_CHG_DIS_BIT_USR_TMR;
+static int chg_dis_pj_mask = HTC_BATT_CHG_DIS_BIT_ID
+								| HTC_BATT_CHG_DIS_BIT_TMR;
+
+
 #define HTC_BATT_PWRSRC_DIS_BIT_MFG		(1)
 #define HTC_BATT_PWRSRC_DIS_BIT_API		(1<<1)
 static int pwrsrc_dis_reason;
@@ -138,6 +144,8 @@ static int htc_ext_5v_output_old;
 
 static int latest_chg_src = CHARGER_BATTERY;
 
+static int latest_pj_src = PJ_OUT;
+
 struct htc_battery_info {
 	int device_id;
 
@@ -193,11 +201,13 @@ struct htc_battery_timer {
 	unsigned int time_out;
 	struct work_struct batt_work;
 	struct delayed_work unknown_usb_detect_work;
+	struct delayed_work calculate_pj_level_work;
 	struct alarm batt_check_wakeup_alarm;
 	struct timer_list batt_timer;
 	struct workqueue_struct *batt_wq;
 	struct wake_lock battery_lock;
 	struct wake_lock unknown_usb_detect_lock;
+	struct wake_lock calculate_pj_level_lock;
 };
 static struct htc_battery_timer htc_batt_timer;
 
@@ -2098,6 +2108,7 @@ static void batt_worker(struct work_struct *work)
 	int prev_chg_src;
 	unsigned long time_since_last_update_ms;
 	unsigned long cur_jiffies;
+	int pmic_aicl_enabled = 0;
 
 	
 	cur_jiffies = jiffies;
@@ -2722,6 +2733,8 @@ static int htc_battery_probe(struct platform_device *pdev)
 	htc_battery_core_ptr->func_get_battery_info = htc_batt_get_battery_info;
 	htc_battery_core_ptr->func_charger_control = htc_batt_charger_control;
 	htc_battery_core_ptr->func_set_full_level = htc_batt_set_full_level;
+	htc_battery_core_ptr->func_set_full_level_dis_batt_chg =
+											htc_batt_set_full_level_dis_batt_chg;
 	htc_battery_core_ptr->func_set_max_input_current = htc_batt_set_max_input_current;
 	htc_battery_core_ptr->func_context_event_handler =
 											htc_batt_context_event_handler;
@@ -2770,6 +2783,9 @@ static int htc_battery_probe(struct platform_device *pdev)
 	INIT_WORK(&htc_batt_timer.batt_work, batt_worker);
 	INIT_DELAYED_WORK(&htc_batt_timer.unknown_usb_detect_work,
 							unknown_usb_detect_worker);
+	INIT_DELAYED_WORK(&htc_batt_timer.calculate_pj_level_work,
+							calculate_pj_level_worker);
+
 	init_timer(&htc_batt_timer.batt_timer);
 	htc_batt_timer.batt_timer.function = batt_regular_timer_handler;
 	alarm_init(&htc_batt_timer.batt_check_wakeup_alarm,

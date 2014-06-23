@@ -120,7 +120,7 @@ struct usb_phy {
 
 	void	(*notify_usb_attached)(void);
 	void	(*notify_usb_disabled)(void);
-#endif
+
 };
 
 
