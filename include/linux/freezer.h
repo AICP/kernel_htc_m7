@@ -238,7 +238,7 @@ static inline int freezable_schedule_hrtimeout_range(ktime_t *expires,
 	__retval;							\
 })
 
-#define wait_event_freezable_exclusive(wq, condition)			\
+#define wait_event_freezable_exclusive(wq, condition)		\
 ({									\
 	int __retval;							\
 	freezer_do_not_count();						\
@@ -248,7 +248,7 @@ static inline int freezable_schedule_hrtimeout_range(ktime_t *expires,
 })
 
 
-#else /* !CONFIG_FREEZER */
+#else
 static inline bool frozen(struct task_struct *p) { return false; }
 static inline bool freezing(struct task_struct *p) { return false; }
 static inline void __thaw_task(struct task_struct *t) {}
