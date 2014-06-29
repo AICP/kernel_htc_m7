@@ -1254,7 +1254,6 @@ static int graft_tree(struct mount *mnt, struct path *path)
 	return attach_recursive_mnt(mnt, path, NULL);
 }
 
-
 static int flags_to_propagation_type(int flags)
 {
 	int type = flags & ~(MS_REC | MS_SILENT);
@@ -1818,7 +1817,7 @@ long do_mount(char *dev_name, char *dir_name, char *type_page,
 		/* Fallback: Mark rootfs as recursive-slave as requested. */
 	}
 #endif
-	
+
 	retval = kern_path(dir_name, LOOKUP_FOLLOW, &path);
 	if (retval)
 		return retval;
