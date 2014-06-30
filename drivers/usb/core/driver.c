@@ -1285,6 +1285,11 @@ static int usb_resume_both(struct usb_device *udev, pm_message_t msg)
 
 	/* Resume the interfaces */
 	if (status == 0 && udev->actconfig) {
+		
+		//int n = udev->actconfig->desc.bNumInterfaces;
+		//dev_info(&udev->dev, "%s[%d] resume intf n:%d\n", __func__, __LINE__, n);
+		
+
 		for (i = 0; i < udev->actconfig->desc.bNumInterfaces; i++) {
 			intf = udev->actconfig->interface[i];
 			usb_resume_interface(udev, intf, msg,
