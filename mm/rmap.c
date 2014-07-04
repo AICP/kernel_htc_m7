@@ -57,6 +57,24 @@ static inline void anon_vma_free(struct anon_vma *anon_vma)
 {
 	VM_BUG_ON(atomic_read(&anon_vma->refcount));
 
+	/*
+	 * Synchronize against page_lock_anon_vma_read() such that
+	 * we can safely hold the lock without the anon_vma getting
+	 * freed.
+	 *
+	 * Relies on the full mb implied by the atomic_dec_and_test() from
+	 * put_anon_vma() against the acquire barrier implied by
+	 * down_read_trylock() from page_lock_anon_vma_read(). This orders:
+	 *
+	 * page_lock_anon_vma_read()	VS	put_anon_vma()
+	 *   down_read_trylock()		  atomic_dec_and_test()
+	 *   LOCK				  MB
+	 *   atomic_read()			  rwsem_is_locked()
+	 *
+	 * LOCK should suffice since the actual taking of the lock must
+	 * happen _before_ what follows.
+	 */
+	might_sleep();
 	if (mutex_is_locked(&anon_vma->root->mutex)) {
 		anon_vma_lock(anon_vma);
 		anon_vma_unlock(anon_vma);
@@ -296,8 +314,9 @@ struct anon_vma *page_get_anon_vma(struct page *page)
 	}
 
 	if (!page_mapped(page)) {
+		rcu_read_unlock();
 		put_anon_vma(anon_vma);
-		anon_vma = NULL;
+		return NULL;
 	}
 out:
 	rcu_read_unlock();
@@ -335,9 +354,9 @@ struct anon_vma *page_lock_anon_vma(struct page *page)
 	}
 
 	if (!page_mapped(page)) {
+		rcu_read_unlock();
 		put_anon_vma(anon_vma);
-		anon_vma = NULL;
-		goto out;
+		return NULL;
 	}
 
 	
