@@ -234,6 +234,23 @@ static inline void user_single_step_siginfo(struct task_struct *tsk,
 #endif
 
 #ifndef arch_ptrace_stop_needed
+/**
+ * arch_ptrace_stop_needed - Decide whether arch_ptrace_stop() should be called
+ * @code:	current->exit_code value ptrace will stop with
+ * @info:	siginfo_t pointer (or %NULL) for signal ptrace will stop with
+ *
+ * This is called with the siglock held, to decide whether or not it's
+ * necessary to release the siglock and call arch_ptrace_stop() with the
+ * same @code and @info arguments.  It can be defined to a constant if
+ * arch_ptrace_stop() is never required, or always is.  On machines where
+ * this makes sense, it should be defined to a quick test to optimize out
+ * calling arch_ptrace_stop() when it would be superfluous.  For example,
+ * if the thread has not been back to user mode since the last stop, the
+ * thread state might indicate that nothing needs to be done.
+ *
+ * This is guaranteed to be invoked once before a task stops for ptrace and
+ * may include arch-specific operations necessary prior to a ptrace stop.
+ */
 #define arch_ptrace_stop_needed(code, info)	(0)
 #endif
 
