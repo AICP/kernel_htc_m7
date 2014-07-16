@@ -137,8 +137,8 @@ static struct msm_bus_vectors mdp_vga_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 605122560 * 2,
-		.ib = 756403200 * 2,
+		.ab = 216000000 * 2,
+		.ib = 270000000 * 2,
 	},
 };
 
@@ -238,9 +238,9 @@ static struct lcdc_platform_data dtv_pdata = {
 static struct msm_panel_common_pdata mdp_pdata = {
 	.gpio = MDP_VSYNC_GPIO,
 	.mdp_max_clk = 266667000,
-	.mdp_max_bw = 4290000000u,
-	.mdp_bw_ab_factor = 115,
-	.mdp_bw_ib_factor = 200,
+	.mdp_max_bw = 2000000000,
+	.mdp_bw_ab_factor = 140,
+	.mdp_bw_ib_factor = 210,
 #ifdef CONFIG_MSM_BUS_SCALING
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 #endif
