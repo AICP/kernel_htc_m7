@@ -1296,7 +1296,10 @@ static int msm_routing_voip_ext_ec_get(struct snd_kcontrol *kcontrol,
 				  struct snd_ctl_elem_value *ucontrol)
 {
 	pr_debug("%s: voip_ext_ec_ref_rx  = %x\n", __func__, msm_route_voip_ext_ec_ref);
+
+	mutex_lock(&routing_lock);
 	ucontrol->value.integer.value[0] = msm_route_voip_ext_ec_ref;
+	mutex_unlock(&routing_lock);
 	return 0;
 }
 
@@ -1313,6 +1316,7 @@ static int msm_routing_voip_ext_ec_put(struct snd_kcontrol *kcontrol,
 		 __func__, msm_route_voip_ext_ec_ref,
 		 ucontrol->value.integer.value[0]);
 
+	mutex_lock(&routing_lock);
 	switch (ucontrol->value.integer.value[0]) {
 	case 1:
 		msm_route_voip_ext_ec_ref = MI2S_TX;
@@ -1324,19 +1328,19 @@ static int msm_routing_voip_ext_ec_put(struct snd_kcontrol *kcontrol,
 		break;
 	}
 	snd_soc_dapm_mux_update_power(widget, kcontrol, 1, mux, e);
+	mutex_unlock(&routing_lock);
 	return ret;
 }
 
 static const char * const voip_ext_ec_ref_rx[] = {"NONE", "MI2S_TX"};
 
 static const struct soc_enum msm_route_voip_ext_ec_ref_rx_enum[] = {
-			SOC_ENUM_SINGLE_EXT(2, voip_ext_ec_ref_rx),
+	SOC_ENUM_SINGLE_EXT(2, voip_ext_ec_ref_rx),
 };
 
 static const struct snd_kcontrol_new voip_ext_ec_mux =
 	SOC_DAPM_ENUM_EXT("VOIP_EXT_EC MUX Mux", msm_route_voip_ext_ec_ref_rx_enum[0],
 			  msm_routing_voip_ext_ec_get, msm_routing_voip_ext_ec_put);
-
 
 static const struct snd_kcontrol_new pri_i2s_rx_mixer_controls[] = {
 	SOC_SINGLE_EXT("MultiMedia1", MSM_BACKEND_DAI_PRI_I2S_RX ,
@@ -2820,6 +2824,8 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"Voip_Tx Mixer", "AUX_PCM_TX_Voip", "AUX_PCM_TX"},
 	{"Voip_Tx Mixer", "SEC_AUX_PCM_TX_Voip", "SEC_AUX_PCM_TX"},
 
+	{"VOIP_EXT_EC MUX", "MI2S_TX", "MI2S_TX"},
+	{"VOIP_UL", NULL, "VOIP_EXT_EC MUX"},
 	{"VOIP_UL", NULL, "Voip_Tx Mixer"},
 	{"SLIMBUS_DL_HL", "Switch", "SLIM0_DL_HL"},
 	{"SLIMBUS_0_RX", NULL, "SLIMBUS_DL_HL"},
