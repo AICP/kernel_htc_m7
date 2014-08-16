@@ -22,6 +22,34 @@
 #include <net/inetpeer.h>
 #include <net/secure_seq.h>
 
+/*
+ *  Theory of operations.
+ *  We keep one entry for each peer IP address.  The nodes contains long-living
+ *  information about the peer which doesn't depend on routes.
+ *
+ *  Nodes are removed only when reference counter goes to 0.
+ *  When it's happened the node may be removed when a sufficient amount of
+ *  time has been passed since its last use.  The less-recently-used entry can
+ *  also be removed if the pool is overloaded i.e. if the total amount of
+ *  entries is greater-or-equal than the threshold.
+ *
+ *  Node pool is organised as an AVL tree.
+ *  Such an implementation has been chosen not just for fun.  It's a way to
+ *  prevent easy and efficient DoS attacks by creating hash collisions.  A huge
+ *  amount of long living nodes in a single hash slot would significantly delay
+ *  lookups performed with disabled BHs.
+ *
+ *  Serialisation issues.
+ *  1.  Nodes may appear in the tree only with the pool lock held.
+ *  2.  Nodes may disappear from the tree only with the pool lock held
+ *      AND reference count being 0.
+ *  3.  Global variable peer_total is modified under the pool lock.
+ *  4.  struct inet_peer fields modification:
+ *		avl_left, avl_right, avl_parent, avl_height: pool lock
+ *		refcnt: atomically against modifications on other CPU;
+ *		   usually under some other lock to prevent node disappearing
+ *		daddr: unchangeable
+ */
 
 static struct kmem_cache *peer_cachep __read_mostly;
 
@@ -410,10 +438,6 @@ relookup:
 		p->daddr = *daddr;
 		atomic_set(&p->refcnt, 1);
 		atomic_set(&p->rid, 0);
-		atomic_set(&p->ip_id_count,
-				(daddr->family == AF_INET) ?
-					secure_ip_id(daddr->addr.a4) :
-					secure_ipv6_id(daddr->addr.a6));
 		p->tcp_ts_stamp = 0;
 		p->metrics[RTAX_LOCK-1] = INETPEER_METRICS_NEW;
 		p->rate_tokens = 0;
